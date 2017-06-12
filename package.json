@@ -1,0 +1,50 @@
+{
+  "name": "mastering-full-stack-react",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node server/index",
+    "fix": "node_modules/.bin/eslint 'app/**/*.js' --fix",
+    "lint": "./node_modules/.bin/eslint .",
+    "webpack": "webpack --config ./webpack.config.js",
+    "build": "NODE_ENV='production' webpack --config ./webpack.production.config.js -p",
+    "firebase-init": "firebase login && firebase init",
+    "deploy": "npm run build && firebase deploy"
+  },
+  "author": "Guanghui Wang",
+  "license": "MIT",
+  "devDependencies": {
+    "babel": "^6.23.0",
+    "babel-core": "^6.25.0",
+    "babel-loader": "^7.0.0",
+    "babel-plugin-transform-object-rest-spread": "^6.23.0",
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-env": "^1.5.2",
+    "babel-preset-react": "^6.24.1",
+    "bootstrap": "^4.0.0-alpha.6",
+    "css-loader": "^0.28.4",
+    "eslint": "^4.0.0",
+    "eslint-plugin-react": "^7.0.1",
+    "extract-text-webpack-plugin": "^2.1.2",
+    "firebase-tools": "^3.9.1",
+    "html-webpack-plugin": "^2.28.0",
+    "node-sass": "^4.5.3",
+    "optimize-css-assets-webpack-plugin": "^2.0.0",
+    "postcss-loader": "^2.0.5",
+    "sass-loader": "^6.0.5",
+    "style-loader": "^0.18.2",
+    "webpack": "^2.6.1",
+    "webpack-dev-server": "^2.4.5"
+  },
+  "dependencies": {
+    "body-parser": "^1.17.2",
+    "cors": "^2.8.3",
+    "express": "^4.15.3",
+    "mongoose": "^4.10.5",
+    "prop-types": "^15.5.10",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
+    "react-router-dom": "^4.1.1"
+  }
+}
