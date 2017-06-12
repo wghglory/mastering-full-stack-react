@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server/index",
+    "start:client": "webpack-dev-server --open",
     "fix": "node_modules/.bin/eslint 'app/**/*.js' --fix",
     "lint": "./node_modules/.bin/eslint .",
     "webpack": "webpack --config ./webpack.config.js",
@@ -45,6 +46,8 @@
     "prop-types": "^15.5.10",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
-    "react-router-dom": "^4.1.1"
+    "react-redux": "^5.0.5",
+    "react-router-dom": "^4.1.1",
+    "redux": "^3.6.0"
   }
 }

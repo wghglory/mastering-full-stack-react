@@ -1,12 +1,8 @@
 # Mastering full stack react
 
-## Importing the articles to MongoDB
+## Table of Content
 
-```bash
-use master-full-stack-react
-
-mongoimport --db master-full-stack-react --collection articles --jsonArray data/initData.js --host=127.0.0.1
-```
+[chapter1](chapter1.md): jsonData to mongodb, node server, react redux client
 
 ## Start project 
 
@@ -14,3 +10,4 @@ mongoimport --db master-full-stack-react --collection articles --jsonArray data/
 mongod   # start mongodb server
 npm start
 ```
+
