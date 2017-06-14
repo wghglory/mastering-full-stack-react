@@ -1,17 +1,43 @@
 import React from 'react';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import articleActions from '../actions/article.js';
+import falcorModel from '../falcorModel.js';
 
 const mapStateToProps = (state) => ({
   ...state
 });
 
 const mapDispatchToProps = (dispatch) => ({
+  articleActions: bindActionCreators(articleActions, dispatch)
 });
 
 class App extends React.Component {
   constructor(props) {
     super(props);
   }
+
+  componentWillMount() {
+    this._fetch();
+  }
+
+  async _fetch() {
+    const articlesLength = await falcorModel.getValue('articles.length').then((length) => length);
+
+    const articles = await falcorModel.get([
+      'articles', {
+        from: 0,
+        to: articlesLength - 1
+      },
+      ['id', 'articleTitle', 'articleContent']
+    ]).then((articlesResponse) => {
+      console.log('articlesResponse: ' + articlesResponse);
+      return articlesResponse.json.articles
+    });
+
+    this.props.articleActions.articlesList(articles);
+  }
+
   render() {
     let articlesJSX = [];
 
@@ -21,7 +47,8 @@ class App extends React.Component {
         <div key={articleKey}>
           <h2>{articleDetails.articleTitle}</h2>
           <h3>{articleDetails.articleContent}</h3>
-        </div>);
+        </div>
+      );
 
       articlesJSX.push(currentArticleJSX);
     }

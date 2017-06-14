@@ -2,7 +2,7 @@
 
 ## Table of Content
 
-[chapter1](chapter1.md): jsonData to mongodb, node server, react redux client
+[chapter1](chapter1.md): jsonData to mongodb, node server, react redux client, Falcor
 
 ## Start project 
 

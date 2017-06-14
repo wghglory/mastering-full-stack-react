@@ -3,7 +3,13 @@ const HtmlWebpackPlugin = require('html-webpack-plugin'); // create index.html i
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 
 const config = {
-  entry: './app/index.js',
+  resolve: {
+    alias: {
+      // Workaround https://github.com/Reactive-Extensions/RxJS/issues/832, until it's fixed
+      "rx$": require.resolve("rx/dist/rx")
+    }
+  },
+  entry: ['babel-polyfill', './app/index.js'],  // es7 async, await works. 
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
