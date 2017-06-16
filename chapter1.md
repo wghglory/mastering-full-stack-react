@@ -214,7 +214,7 @@ Let's install Falcor from NPM first:
 npm i --save falcor falcor-http-datasource
 ```
 
-The `falcor-http-datasource` helps us to retrieve data from server to client side, out-of-the-box (without worrying about HTTP API requests)--we will use this later when moving the client-side model to the backend.
+The `falcor-http-datasource` helps us to retrieve data from server to client side, out-of-the-box (without worrying about HTTP API requests)
 
 Let's create our app's Falcor model on the client side: app/falcorModel.js
 
@@ -222,28 +222,12 @@ Let's create our app's Falcor model on the client side: app/falcorModel.js
 import falcor from 'falcor';
 import FalcorDataSource from 'falcor-http-datasource';
 
-let cache = {
-  articles: [
-    {
-      id: 987654,
-      articleTitle: 'Lorem ipsum - article one',
-      articleContent: 'Here goes the content of the article'
-    },
-    {
-      id: 123456,
-      articleTitle: 'Lorem ipsum - article two from backend',
-      articleContent: 'Sky is the limit, the content goes here.'
-    }
-  ]
-};
-
 const model = new falcor.Model({
-  'cache': cache
+  source: new FalcorDataSource('/model.json')   // from backend
 });
+
 export default model;
 ```
-
-In this code, you can find a well-known, brief, and readable model of our publishing application with two articles in it.
 
 Now we will fetch that data from the frontend Falcor's model in our "app/layouts/App.js" React component, we will add a new function called _fetch() which will be responsible for fetching all articles on our application start.
 
@@ -255,27 +239,72 @@ import falcorModel from '../falcorModel.js';
 
 In our App class, we need to add the following two functions; componentWillMount and _fetch (more explanation follows):
 
-```jsx
-class App extends React.Component { 
-  constructor(props) { 
-    super(props); 
-  } 
+```diff
+import React from 'react';
+import { connect } from 'react-redux';
++ import { bindActionCreators } from 'redux';
+import articleActions from '../actions/article.js';
++ import falcorModel from '../falcorModel.js';
 
-  componentWillMount() { 
-    this._fetch(); 
-  } 
+const mapStateToProps = (state) => ({
+  ...state
+});
 
-  async _fetch() { 
-    const articlesLength = await falcorModel. 
-      getValue('articles.length'). 
-      then((length) => length ); 
+const mapDispatchToProps = (dispatch) => ({
++  articleActions: bindActionCreators(articleActions, dispatch)
+});
 
-    const articles = await falcorModel. 
-      get(['articles', {from: 0, to: articlesLength-1},  
-      ['id','articleTitle', 'articleContent']])  
-      .then((articlesResponse) => articlesResponse.json.articles); 
-  } 
-  // below here are next methods o the PublishingApp
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+  }
+
++  componentWillMount() {
++    this._fetch();
++  }
++
++  async _fetch() {
++    const articlesLength = await falcorModel.getValue('articles.length').then((length) => length);
++
++    const articles = await falcorModel.get([
++      'articles', {
++        from: 0,
++        to: articlesLength - 1
++      },
++      ['id', 'articleTitle', 'articleContent']
++    ]).then((articlesResponse) => {
++      console.log('articlesResponse: ' + articlesResponse);
++      return articlesResponse.json.articles
++    });
++
++    this.props.articleActions.articlesList(articles);
++  }
+
+  render() {
+    let articlesJSX = [];
+
+    for (let articleKey in this.props) {
+      const articleDetails = this.props[articleKey];
+      const currentArticleJSX = (
+        <div key={articleKey}>
+          <h2>{articleDetails.articleTitle}</h2>
+          <h3>{articleDetails.articleContent}</h3>
+        </div>
+      );
+
+      articlesJSX.push(currentArticleJSX);
+    }
+
+    return (
+      <div>
+        <h1>Our publishing app</h1>
+        {articlesJSX}
+      </div>
+    );
+  }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);
 ```
 
 Here, you see the asynchronous function called `_fetch`. This is a special syntax that allows you to use the await keyword like we do when using `let articlesLength = await falcorModel` and `let articles = await falcorModel`.
@@ -286,80 +315,11 @@ The async/await feature is taken from ECMAScript 7 inspired by C#. It allows you
 
 In our example, the code will execute as follows:
 
-1. First it will call Falcor's mode for an article count with the following:
-
-   ```javascript
-     const articlesLength = await falcorModel. 
-       getValue('articles.length'). 
-       then( (length) =>  length );
-   ```
-
-2. In the article's Length variable, we will have a count of `articles.length` from our model (in our case it will be number two).
-
-3. After we know that we have two articles in our model, then the next block of code executes the following:
-
-   ```javascript
-     let articles = await falcorModel. 
-       get(['articles', {from: 0, to: articlesLength-1},
-       ['id','articleTitle', 'articleContent']]).  
-       then( (articlesResponse) => articlesResponse.json.articles);
-   ```
-
-The get method on `falcorModel.get(['articles', {from: 0, to: articlesLength-1}, ['id','articleTitle', 'articleContent']])` is also an asynchronous operation (in the same way as http request). In the get method's parameter, we provide the location of our articles in our model (in src/falcorModel.js), so we are providing the following path:
-
-```javascript
-falcorModel.get( 
-['articles', {from: 0, to: articlesLength-1}, ['id','articleTitle', 'articleContent']] 
-)
-```
-
-The explanation of the preceding Falcor path is based on our model. Let's call it again:
-
-```json
-{ 
-  articles: [ 
-    { 
-        id: 987654, 
-        articleTitle: 'Lorem ipsum - article one', 
-        articleContent: 'Here goes the content of the article' 
-    }, 
-    { 
-        id: 123456, 
-        articleTitle: 'Lorem ipsum - article two from backend', 
-        articleContent: 'Sky is the limit, the content goes here.' 
-    } 
-  ] 
-}
-```
-
-What we are saying to Falcor:
-
-First we want to get data from articles within our object using:
-
-```javascript
-  ['articles']
-```
-
-Next from articles collection select subset of all the articles it has with a range `{from: 0, to: articlesLength-1}`(the articlesLength we have fetched earlier) with the following path:
-
-```javascript
-  ['articles', {from: 0, to: articlesLength-1}]
-```
-
-The last step explains to Falcor, which properties from the object you want to fetch from our model. So the complete path in that `falcorModel.get` query is the following:
-
-```javascript
-  ['articles', {from: 0, to: articlesLength-1},   
-  ['id','articleTitle', 'articleContent']]
-```
+The get method on `falcorModel.get(['articles', {from: 0, to: articlesLength-1}, ['id','articleTitle', 'articleContent']])` is also an asynchronous operation (in the same way as http request). In the get method's parameter, we provide the location of our articles in our model (in app/falcorModel.js)
 
 The array of `['id','articleTitle', 'articleContent']` says that you want those three properties out of every article.
 
-In the end, we receive an array of article objects from Falcor:
-
-![img](https://www.safaribooksonline.com/library/view/mastering-full-stack-react/9781786461766/assets/image_01_010.png)
-
-After we have fetched the data from our Falcor model, we need to dispatch an action that will change the article's reducer accordingly and ultimately re-render our list of articles from our Falcor model from the const articleMock (in src/reducers/article.js) instead.
+After we have fetched the data from our Falcor model, we need to dispatch an action that will change the article's reducer accordingly and ultimately re-render our list of articles from our Falcor model from the const articleMock (in app/reducers/article.js) instead.
 
 But before we will be able to dispatch an action, we need to do the following:
 
@@ -378,20 +338,6 @@ export default {
 
 There isn't too much in that actions/article.js file. If you are familiar with FLUX already then it's very similar. One important rule for actions in Redux is that it has to be a pure function. For now, we will hardcode a constant called `ARTICLES_LIST_ADD` into actions/article.js.
 
-In the app/layouts/App.js file we need to add a new import code at the top of the file:
-
-```javascript
-import {bindActionCreators} from 'redux'; 
-import articleActions from '../actions/article.js';
-```
-
-When you have added the preceding two in our App, then modify our existing function in the same file from the following:
-
-```javascript
-const mapDispatchToProps = (dispatch) => ({ 
-});
-```
-
 Add articleActions: bindActionCreators(articleActions, dispatch) so that we are able to bind the articles' actions into our this.props component:
 
 ```javascript
@@ -406,31 +352,6 @@ Now, after you are done with these changes, add an action into our component in 
 
 ```javascript
 this.props.articleActions.articlesList(articles);
-```
-
-Our whole function for fetching will look as follows:
-
-```javascript
- async _fetch() { 
-    const articlesLength = await falcorModel. 
-      getValue('articles.length'). 
-      then( (length) => length); 
-
-    let articles = await falcorModel. 
-      get(['articles', {from: 0, to: articlesLength-1},  
-      ['id','articleTitle', 'articleContent']]).  
-      then( (articlesResponse) => articlesResponse.json.articles); 
-
-    this.props.articleActions.articlesList(articles); 
-  }
-```
-
-Also, don't forget about calling `_fetch` from ComponentWillMount:
-
-```javascript
- componentWillMount() { 
-    this._fetch(); 
-  }
 ```
 
 At this point, we shall be able to receive an action in our Redux's reducer. Let's improve our app/reducers/article.js file:
@@ -449,14 +370,233 @@ const article = (state = {}, action) => {
 export default article
 ```
 
-As you can see, we don't need articleMock anymore, so we have deleted it from the src/reducers/article.js.
+request: `http://localhost:3000/model.json?paths=[["articles",%20{"from":0,"to":1},["articleContent","articleTitle","id"]]]&method=get`
 
-We have added a new case, `ARTICLES_LIST_ADD`:
+### Moving Falcor's model to the backend
 
-```javascript
-   case 'ARTICLES_LIST_ADD': 
-        let articlesList = action.payload.response; 
-        return Object.assign({}, articlesList);
+The next important thing is to install new dependencies that are required for Falcor on the backend:
+
+```
+npm i --save falcor-express falcor-router
 ```
 
-request: `http://localhost:3000/model.json?paths=[["articles",%20{"from":0,"to":1},["articleContent","articleTitle","id"]]]&method=get`
+When you have finally installed new dependencies and configured the basic scripts for running the backend and frontend on the same port, then edit the server/server.js as follows:
+
+1. On top of our file, import new libraries in the server/server.js:
+
+    ```javascript
+    import falcor from 'falcor'; 
+    import falcorExpress from 'falcor-express';
+    ```
+
+1. Then between the following two:
+
+    ```javascript
+    app.use(bodyParser.json({extended: false})); 
+    app.use(express.static('dist'));
+    ```
+
+1. Add new code for managing Falcor at the backend:
+
+    ```javascript
+    app.use(bodyParser.json({extended: false})); 
+
+    let cache = { 
+      articles: [ 
+        { 
+            id: 987654, 
+            articleTitle: 'Lorem ipsum - article one', 
+            articleContent: 'Here goes the content of the article' 
+        }, 
+        { 
+            id: 123456, 
+            articleTitle: 'Lorem ipsum - article two from          
+            backend', 
+            articleContent: 'Sky is the limit, the content goes          
+            here.' 
+        } 
+      ] 
+    }; 
+
+    var model = new falcor.Model({ 
+      cache: cache 
+    }); 
+
+    app.use('/model.json', falcorExpress.dataSourceRoute((req,               
+    res) => { 
+        return model.asDataSource(); 
+    })); 
+    app.use(express.static('dist'));
+    ```
+
+1. The preceding code is almost the same as the one in the app/falcorModel.js file. The only difference is that now Falcor will fetch data from the backend's mocked object, called cache in server.js.
+
+1. You will see in your browser's dev tools a new HTTP request made by Falcor--for example, in our case:
+
+![img](https://www.safaribooksonline.com/library/view/mastering-full-stack-react/9781786461766/assets/image_01_011.png)
+
+If you follow all the instructions correctly, then you can also make a request to your server directly from your browser by executing this:
+
+```
+http://localhost:3000/model.json?paths=[["articles", {"from":0,"to":1},   
+["articleContent","articleTitle","id"]]]&method=get
+```
+
+Then you shall see a jsonGraph in the response:
+
+![img](https://www.safaribooksonline.com/library/view/mastering-full-stack-react/9781786461766/assets/image_01_012.png)
+
+### Configuring Falcor's router (Express.js)
+
+Currently, our model on the backend is hardcoded, so that it stays in the RAM memory of a server. We need to add the ability to read the data from our MongoDB's articles collection--this is where the falcor-router comes in handy.
+
+Create server/routes.js file:
+
+```javascript
+const AppRoutes = [{ 
+  route: 'articles.length', 
+  get: () => { 
+    const articlesCountInDB = 2; // hardcoded for example 
+    return { 
+      path: ['articles', 'length'], 
+      value: articlesCountInDB 
+    }; 
+  } 
+}]; 
+export default AppRoutes;
+```
+
+As you can see, we have created our first route that will match the articles.length from our `_fetch` function (in layouts/App.js).
+
+We have hardcoded the number two in articlesCountInDB, later we will make a query to our database there.
+
+The new stuff here is route: 'articles.length', this is simply a route for matching by Falcor.
+
+To be more precise, the Falcor routes' paths are exactly the same stuff that you have provided in your app/layouts/App.js (_fetch function) for example, to match this frontend call:
+
+```javascript
+ // location of that code snippet: app/layouts/App.js 
+ const articlesLength = await falcorModel. 
+    getValue('articles.length'). 
+    then((length) => length);
+```
+
+- path: ['articles', 'length']: This property tells us Falcor's path (it's consumed by Falcor at the backend and frontend). We need to provide that because sometimes, one route can return many different objects as server articles (you will see it in the next route we create).
+- value: articlesCountInDB: This is a return value. In this case, it is an integer number, but it can also be an object with several properties, as you will learn later.
+
+### Second route for returning our two articles from the backend
+
+Our second route (and last one in this chapter) will be the following:
+
+```javascript
+{ 
+  route: 'articles[{integers}]["id","articleTitle","articleContent"]', 
+  get: (pathSet) => { 
+    const articlesIndex = pathSet[1]; 
+    const articlesArrayFromDB = [{ 
+    'articleId': '987654', 
+    'articleTitle': 'BACKEND Lorem ipsum - article one', 
+    'articleContent': 'BACKEND Here goes the content of the article' 
+    }, { 
+    'articleId': '123456', 
+    'articleTitle': 'BACKEND Lorem ipsum - article two', 
+    'articleContent': 'BACKEND Sky is the limit, the content goes here.' 
+    }]; // That are our mocked articles from MongoDB 
+
+    let results = []; 
+    articlesIndex.forEach((index) => { 
+      const singleArticleObject = articlesArrayFromDB[index]; 
+      const falcorSingleArticleResult = { 
+        path: ['articles', index], 
+        value: singleArticleObject 
+      }; 
+      results.push(falcorSingleArticleResult); 
+    }); 
+
+    return results; 
+  } 
+}
+```
+
+The new thing in the second route is pathSet, if you log that into the console, then you will see, in our case (when trying to run our full-stack app) the following:
+
+```javascript
+[  
+'articles', 
+  [ 0, 1 ], 
+  [ 'articleContent', 'articleTitle', 'id' ]  
+]
+```
+
+pathSet tells us what indexes are requested from the client side ([ 0, 1 ], in our example).
+
+Iterate over the requested indexes:
+
+```javascript
+let results = [];
+
+articlesIndex.forEach((index) => { 
+   const singleArticleObject = articlesArrayFromDB[index]; 
+   const falcorSingleArticleResult = { 
+     path: ['articles', index], 
+     value: singleArticleObject 
+   }; 
+   results.push(falcorSingleArticleResult); 
+ });
+```
+
+In the preceding code snippet, we iterate over an array of requested indexes (do you remember {from: 0, to: articlesLength-1} in PublishingApp.js?). Based on the indexes ([0, 1]) we fetch mocked data via const singleArticleObject = articlesArrayFromDB[index];. Later we put into the path and index (path: ['articles', index],) so Falcor knows to what path in our JSON graph object, the value singleArticleObject belongs to.
+
+```javascript
+[{ 
+  path: ['articles', 0], 
+  value: { 
+    articleId: '987654', 
+    articleTitle: 'BACKEND Lorem ipsum - article one', 
+    articleContent: 'BACKEND Here goes the content of the article' 
+  } 
+}, { 
+  path: ['articles', 1], 
+  value: { 
+    articleId: '123456', 
+    articleTitle: 'BACKEND Lorem ipsum - article two', 
+    articleContent: 'BACKEND Sky is the limit, the content goes here.' 
+  } 
+}]
+```
+
+### Final touch to make full-stack Falcor run
+
+Currently, we still have mocked data in our routes, but before we start making calls to MongoDB, we need to wrap up the current setup so you will be able to see it running in your browser.
+
+Open your server/server.js and make sure you import the following two things:
+
+```javascript
+import falcorRouter from 'falcor-router'; 
+import routes from './routes.js';
+```
+
+Now that we have imported our falcor-router and routes.js--we need to use them, so modify this old code:
+
+```javascript
+// This is old code, remove it and replace with new 
+app.use('/model.json', falcorExpress.dataSourceRoute((req, res) =>  { 
+  return model.asDataSource(); 
+}));
+```
+
+Replace the preceding code with:
+
+```javascript
+app.use('/model.json', falcorExpress.dataSourceRoute((req, res) => { 
+ return new falcorRouter(routes); 
+}));
+```
+
+This will work only when the falcor-router has been already installed and imported in the server.js file. This is a library for DataSource that creates a virtual JSON graph document on your app server. As you can see in server.js so far we have DataSource provided by our hardcoded model, return model.asDataSource();. The router here will make the same, but now you will be able to match routes based on your app requirements.
+
+Also, as you can see, the new falcorRouter takes an argument of our routes `return new falcorRouter(routes)`.
+
+On port 3000, you will see the following:
+
+![img](https://www.safaribooksonline.com/library/view/mastering-full-stack-react/9781786461766/assets/image_01_013.png)
